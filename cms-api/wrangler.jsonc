@@ -1,19 +1,20 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "perakaria-cms-api",
+  "account_id": "2233424a9945a9540de3d7f456eb640e",
   "main": "src/index.ts",
   "compatibility_date": "2025-07-12",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
-    "ENVIRONMENT": "development",
-    "CMS_ALLOWED_ORIGINS": "http://localhost:4173,http://localhost:4174",
-    "PUBLIC_ASSET_BASE_URL": "http://localhost:8787/assets"
+    "ENVIRONMENT": "production",
+    "CMS_ALLOWED_ORIGINS": "https://perakaria-site.minilemon-tech.workers.dev,https://perakaria-cms.minilemon-tech.workers.dev",
+    "PUBLIC_ASSET_BASE_URL": "https://perakaria-cms-api.minilemon-tech.workers.dev/assets"
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "perakaria_cms_db",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "57f30bf7-9ec5-43fb-9a23-5d1c105d212c",
       "migrations_dir": "migrations"
     }
   ],
