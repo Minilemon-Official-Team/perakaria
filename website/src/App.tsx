@@ -2,25 +2,22 @@
 // sharp editorial geometry, near-black surfaces, and restrained gold actions.
 import {
   IconArrowDownRight,
-  IconArrowLeft,
-  IconArrowRight,
   IconBrandInstagram,
   IconBrandLinkedin,
   IconBrandVimeo,
   IconMenu2,
-  IconPlayerPlay,
-  IconPlus,
   IconX,
 } from "@tabler/icons-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   PublicSitePayload,
   SectionSettings,
-  Service,
 } from "@perakaria/content-schema";
 import { defaultSiteContent } from "@perakaria/content-schema";
 import { loadPublicSite } from "./lib/cms";
 import { cancelSmoothScroll, scrollToHash } from "./lib/smooth-scroll";
+
+const primarySectionOrder = ["work", "clients", "about", "contact"] as const;
 
 const sectionStyle = (section: SectionSettings) =>
   ({
@@ -54,6 +51,15 @@ function Brand({ content }: { content: PublicSitePayload }) {
 function Header({ content }: { content: PublicSitePayload }) {
   const [open, setOpen] = useState(false);
   const [solid, setSolid] = useState(false);
+  const navigation = useMemo(
+    () =>
+      [...content.settings.navigation].filter((item) => item.href !== "#services").sort((a, b) => {
+        const aIndex = primarySectionOrder.indexOf(a.href.slice(1) as (typeof primarySectionOrder)[number]);
+        const bIndex = primarySectionOrder.indexOf(b.href.slice(1) as (typeof primarySectionOrder)[number]);
+        return (aIndex < 0 ? Number.MAX_SAFE_INTEGER : aIndex) - (bIndex < 0 ? Number.MAX_SAFE_INTEGER : bIndex);
+      }),
+    [content.settings.navigation],
+  );
   useEffect(() => {
     const update = () => setSolid(window.scrollY > 24);
     update();
@@ -67,7 +73,7 @@ function Header({ content }: { content: PublicSitePayload }) {
         <Brand content={content} />
       </a>
       <nav className="desktop-nav" aria-label="Navigasi utama">
-        {content.settings.navigation.map((item) => (
+        {navigation.map((item) => (
           <a key={item.href} href={item.href}>
             {item.label}
           </a>
@@ -88,7 +94,7 @@ function Header({ content }: { content: PublicSitePayload }) {
         className={`mobile-nav ${open ? "is-open" : ""}`}
         aria-label="Navigasi mobile"
       >
-        {content.settings.navigation.map((item, index) => (
+        {navigation.map((item, index) => (
           <a key={item.href} href={item.href} onClick={() => setOpen(false)}>
             <span>0{index + 1}</span>
             {item.label}
@@ -129,10 +135,6 @@ function Hero({ content }: { content: PublicSitePayload }) {
         )}
       </div>
       <div className={`hero-copy hero-align-${content.hero.alignment}`}>
-        <p className="eyebrow">
-          <span />
-          {content.hero.eyebrow}
-        </p>
         <h1>{content.hero.headline}</h1>
         <p className="hero-body">{content.hero.body}</p>
         <div className="hero-actions">
@@ -152,72 +154,66 @@ function WorkSection({
   content: PublicSitePayload;
   section: SectionSettings;
 }) {
-  const rail = useRef<HTMLDivElement>(null);
-  const [progress, setProgress] = useState(0);
-  const drag = useRef({
-    active: false,
-    startX: 0,
-    startY: 0,
-    scrollLeft: 0,
-  });
-  const autoPaused = useRef(false);
   const reduceMotion = window.matchMedia?.(
     "(prefers-reduced-motion: reduce)",
   ).matches;
+  const portfolio = useMemo(
+    () =>
+      content.portfolio
+        .filter((item) => item.isVisible)
+        .sort((a, b) => a.order - b.order),
+    [content.portfolio],
+  );
+  const serviceGroups = useMemo(() => {
+    const services = content.services
+      .filter((service) => service.isVisible)
+      .sort((a, b) => a.order - b.order);
+    const [production, ...creativeServices] = services;
+
+    return [
+      production && {
+        id: production.id,
+        title: production.title,
+        details: production.details,
+      },
+      creativeServices.length > 0 && {
+        id: "creative-services",
+        title: creativeServices[0].title,
+        details: creativeServices.flatMap((service) => service.details),
+      },
+    ].filter(Boolean) as { id: string; title: string; details: string[] }[];
+  }, [content.services]);
+  const galleryCards = useMemo(() => {
+    if (!portfolio.length) return [];
+    return serviceGroups.flatMap((group, groupIndex) =>
+      Array.from({ length: 8 }, (_, cardIndex) => {
+        const offset = groupIndex * 2 + cardIndex;
+        return {
+          id: `${group.id}-${cardIndex}`,
+          groupId: group.id,
+          front: portfolio[offset % portfolio.length],
+          back: portfolio[(offset + 3) % portfolio.length],
+        };
+      }),
+    );
+  }, [portfolio, serviceGroups]);
+  const [flippedCards, setFlippedCards] = useState<Set<string>>(() => new Set());
+  const lastFlippedCard = useRef<string | null>(null);
 
   useEffect(() => {
-    if (reduceMotion) return;
+    if (reduceMotion || !galleryCards.length) return;
     const timer = window.setInterval(() => {
-      const node = rail.current;
-      if (!node || autoPaused.current || window.innerWidth < 1025) return;
-      const firstCard = node.querySelector<HTMLElement>(".work-card");
-      if (!firstCard) return;
-      const max = node.scrollWidth - node.clientWidth;
-      const gap = Number.parseFloat(getComputedStyle(node).gap) || 0;
-      const next = node.scrollLeft + firstCard.offsetWidth + gap;
-      node.scrollTo({
-        left: next >= max - 4 ? 0 : Math.min(next, max),
-        behavior: "smooth",
+      const choices = galleryCards.filter((card) => card.id !== lastFlippedCard.current);
+      const next = choices[Math.floor(Math.random() * choices.length)] ?? galleryCards[0];
+      lastFlippedCard.current = next.id;
+      setFlippedCards((current) => {
+        const updated = new Set(current);
+        updated.has(next.id) ? updated.delete(next.id) : updated.add(next.id);
+        return updated;
       });
-    }, 3600);
+    }, 2200);
     return () => window.clearInterval(timer);
-  }, [reduceMotion]);
-
-  const scroll = (direction: number) =>
-    rail.current?.scrollBy({
-      left: direction * Math.min(620, window.innerWidth * 0.72),
-      behavior: "smooth",
-    });
-  const beginDrag = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-    const node = event.currentTarget;
-    drag.current = {
-      active: true,
-      startX: event.clientX,
-      startY: event.clientY,
-      scrollLeft: node.scrollLeft,
-    };
-    autoPaused.current = true;
-    node.classList.add("is-dragging");
-    node.setPointerCapture(event.pointerId);
-  };
-  const moveDrag = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!drag.current.active) return;
-    const deltaX = event.clientX - drag.current.startX;
-    const deltaY = event.clientY - drag.current.startY;
-    if (Math.abs(deltaX) <= Math.abs(deltaY)) return;
-    event.preventDefault();
-    event.currentTarget.scrollLeft = drag.current.scrollLeft - deltaX;
-  };
-  const endDrag = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!drag.current.active) return;
-    drag.current.active = false;
-    autoPaused.current = false;
-    event.currentTarget.classList.remove("is-dragging");
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  };
+  }, [galleryCards, reduceMotion]);
 
   return (
     <section
@@ -226,165 +222,42 @@ function WorkSection({
       style={sectionStyle(section)}
     >
       <div className="section-backdrop" />
-      <div className="section-heading">
-        <div>
-          <p className="section-index">01 — WORK & SERVICES</p>
-          <h2>{section.label}</h2>
-        </div>
-        <p>{section.intro}</p>
-        <div className="rail-status">
-          <span>Auto / swipe</span>
-          <div className="rail-progress">
-            <i
-              style={{
-                transform: `scaleX(${Math.max(0.06, progress / 100)})`,
-              }}
-            />
-          </div>
-        </div>
-        <div className="rail-controls">
-          <button onClick={() => scroll(-1)} aria-label="Karya sebelumnya">
-            <IconArrowLeft />
-          </button>
-          <button onClick={() => scroll(1)} aria-label="Karya berikutnya">
-            <IconArrowRight />
-          </button>
-        </div>
+      <div className="work-section-heading">
+        <h2>{section.label}</h2>
       </div>
-      <div
-        className="work-rail"
-        ref={rail}
-        aria-label="Work & Services, geser untuk melihat karya lain"
-        onMouseEnter={() => { autoPaused.current = true; }}
-        onMouseLeave={() => { autoPaused.current = false; }}
-        onFocusCapture={() => { autoPaused.current = true; }}
-        onBlurCapture={() => { autoPaused.current = false; }}
-        onPointerDown={beginDrag}
-        onPointerMove={moveDrag}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        onScroll={(event) => {
-          const node = event.currentTarget;
-          const range = node.scrollWidth - node.clientWidth;
-          setProgress(range > 0 ? (node.scrollLeft / range) * 100 : 100);
-        }}
-      >
-        {content.portfolio
-          .filter((item) => item.featured && item.isVisible)
-          .sort((a, b) => a.order - b.order)
-          .map((item, index) => (
-            <article className="work-card" key={item.id}>
-              <div className="work-image">
-                <img src={item.coverImageUrl} alt={item.coverImageAlt} />
-                {item.mediaType === "video" && (
-                  <span className="play-mark" aria-label="Konten video">
-                    <IconPlayerPlay />
-                  </span>
-                )}
-                <span className="work-number">0{index + 1}</span>
+      <div className="work-service-list">
+        {serviceGroups.map((group) => {
+          const cards = galleryCards.filter((card) => card.groupId === group.id);
+          return (
+            <article className="work-service-group" key={group.id}>
+              <div className="work-service-gallery" aria-label={`Galeri ${group.title}`}>
+                {cards.map((card) => (
+                  <figure
+                    className={`work-gallery-card ${flippedCards.has(card.id) ? "is-flipped" : ""}`}
+                    key={card.id}
+                  >
+                    <div className="work-gallery-card-inner" aria-hidden="true">
+                      <div className="work-gallery-card-face">
+                        <img src={card.front?.coverImageUrl} alt="" loading="lazy" decoding="async" />
+                      </div>
+                      <div className="work-gallery-card-face work-gallery-card-back">
+                        <img src={card.back?.coverImageUrl} alt="" loading="lazy" decoding="async" />
+                      </div>
+                    </div>
+                  </figure>
+                ))}
               </div>
-              <div className="work-details">
-                <p>{item.client}</p>
-                <h3>{item.title}</h3>
-                <div>
-                  <span>{item.category}</span>
-                  <span>{item.year}</span>
-                  
-                </div>
+              <div className="work-service-copy">
+                <h3>{group.title}</h3>
+                <ul>
+                  {group.details.map((detail) => (
+                    <li key={detail}>{detail}</li>
+                  ))}
+                </ul>
               </div>
             </article>
-          ))}
-      </div>
-    </section>
-  );
-}
-function ServiceRow({
-  service,
-  index,
-  open,
-  onToggle,
-}: {
-  service: Service;
-  index: number;
-  open: boolean;
-  onToggle: () => void;
-}) {
-  const disclosureId = `service-${service.id}-disclosure`;
-  return (
-    <article className={`service-row ${open ? "is-open" : ""}`}>
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={disclosureId}
-        onClick={onToggle}
-      >
-        <span className="service-number">0{index + 1}</span>
-        <span className="service-title">{service.title}</span>
-        <span className="service-category">{service.category}</span>
-        <IconPlus className="service-plus" />
-      </button>
-      <div className="service-disclosure" id={disclosureId}>
-        <p>{service.description}</p>
-        <ul>
-          {service.details.map((detail) => <li key={detail}>{detail}</li>)}
-        </ul>
-      </div>
-    </article>
-  );
-}
-
-function ServicesSection({
-  content,
-  section,
-}: {
-  content: PublicSitePayload;
-  section: SectionSettings;
-}) {
-  const services = useMemo(
-    () =>
-      content.services
-        .filter((service) => service.isVisible)
-        .sort((a, b) => a.order - b.order),
-    [content.services],
-  );
-  const [openServiceId, setOpenServiceId] = useState<string | null>(
-    services[0]?.id ?? null,
-  );
-
-  useEffect(() => {
-    setOpenServiceId((current) =>
-      current && services.some((service) => service.id === current)
-        ? current
-        : services[0]?.id ?? null,
-    );
-  }, [services]);
-
-  return (
-    <section
-      className="content-section services-section"
-      id="services"
-      style={sectionStyle(section)}
-    >
-      <div className="section-backdrop" />
-      <div className="service-lead">
-        <p className="section-index">02 — CAPABILITIES</p>
-        <h2>{section.label}</h2>
-        <p>{section.intro}</p>
-      </div>
-      <div className="service-list">
-        {services.map((service, index) => (
-          <ServiceRow
-            key={service.id}
-            service={service}
-            index={index}
-            open={openServiceId === service.id}
-            onToggle={() =>
-              setOpenServiceId((current) =>
-                current === service.id ? null : service.id,
-              )
-            }
-          />
-        ))}
+          );
+        })}
       </div>
     </section>
   );
@@ -400,28 +273,54 @@ function AboutSection({
     <section
       className="content-section about-section"
       id="about"
-      style={sectionStyle(section)}
+      style={{
+        ...sectionStyle(section),
+        "--about-grid-trim": `${content.about.gridTrim}px`,
+        "--about-grid-label-size": `${content.about.gridLabelSize}px`,
+        "--about-grid-vertical-padding": `${content.about.gridVerticalPadding}px`,
+      } as React.CSSProperties}
     >
       <div className="section-backdrop" />
-      <div className="about-image">
-        <img src={content.about.imageUrl} alt={content.about.imageAlt} />
-        <span>CRAFT / SYSTEM / IMPACT</span>
-      </div>
       <div className="about-copy">
-        <p className="section-index">03 — {content.about.kicker}</p>
         <h2>{content.about.headline}</h2>
         <p className="manifesto">{content.about.body}</p>
-        <dl className="metrics">
-          {content.about.metrics.map((metric) => (
-            <div key={metric.label}>
-              <dt>{metric.value}</dt>
-              <dd>
-                {metric.label}
-                
-              </dd>
-            </div>
+
+      </div>
+      <div className="about-image-grid" aria-label="Bidang keahlian Perakaria">
+        <div className="about-grid-left about-grid-composite">
+          {content.about.gridImages.slice(0, 3).map((image, index) => (
+            <figure className={`about-grid-tile about-grid-left-tile-${index + 1}`} key={`${image.label}-${index}`}>
+              <img src={image.imageUrl} alt={image.imageAlt} loading="lazy" decoding="async" />
+            </figure>
           ))}
-        </dl>
+          <span className="about-grid-label">{content.about.gridImages[0].label}</span>
+        </div>
+        <div className="about-grid-right">
+          <div className="about-grid-pair about-grid-top">
+            {content.about.gridImages.slice(5, 7).map((image, index) => (
+              <figure className="about-grid-tile" key={`${image.label}-${index + 5}`}>
+                <img src={image.imageUrl} alt={image.imageAlt} loading="lazy" decoding="async" />
+                <figcaption>{image.label}</figcaption>
+              </figure>
+            ))}
+          </div>
+          <div className="about-grid-middle about-grid-composite">
+            {content.about.gridImages.slice(3, 5).map((image, index) => (
+              <figure className={`about-grid-tile about-grid-middle-tile-${index + 1}`} key={`${image.label}-${index + 3}`}>
+                <img src={image.imageUrl} alt={image.imageAlt} loading="lazy" decoding="async" />
+              </figure>
+            ))}
+            <span className="about-grid-label">{content.about.gridImages[3].label}</span>
+          </div>
+          <div className="about-grid-pair about-grid-bottom">
+            {content.about.gridImages.slice(7, 9).map((image, index) => (
+              <figure className="about-grid-tile" key={`${image.label}-${index + 7}`}>
+                <img src={image.imageUrl} alt={image.imageAlt} loading="lazy" decoding="async" />
+                <figcaption>{image.label}</figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -434,6 +333,31 @@ function ClientsSection({
   content: PublicSitePayload;
   section: SectionSettings;
 }) {
+  const clients = useMemo(
+    () => content.clients.filter((client) => client.isVisible && client.name !== "Puteri Indonesia" && client.name !== "Enjoy Jakarta").sort((a, b) => a.order - b.order),
+    [content.clients],
+  );
+  const clientPages = useMemo(() => {
+    const pages = [];
+    for (let index = 0; index < clients.length; index += 3) pages.push(clients.slice(index, index + 3));
+    return pages;
+  }, [clients]);
+  const [activePage, setActivePage] = useState(0);
+  const [swipeStart, setSwipeStart] = useState<number | null>(null);
+  const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches || !content.theme.motionEnabled;
+
+  useEffect(() => {
+    setActivePage((page) => Math.min(page, Math.max(clientPages.length - 1, 0)));
+  }, [clientPages.length]);
+
+  useEffect(() => {
+    if (reduceMotion || clientPages.length < 2) return;
+    const timer = window.setInterval(() => setActivePage((page) => (page + 1) % clientPages.length), 4800);
+    return () => window.clearInterval(timer);
+  }, [clientPages.length, reduceMotion]);
+
+  const showPage = (page: number) => setActivePage((page + clientPages.length) % clientPages.length);
+
   return (
     <section
       className="content-section clients-section"
@@ -441,161 +365,49 @@ function ClientsSection({
       style={sectionStyle(section)}
     >
       <div className="section-backdrop" />
-      <p className="section-index">04 — OUR CLIENTS</p>
-      <div className="clients-intro">
+      <div className="clients-heading">
         <h2>{section.label}</h2>
-        <p>{section.intro}</p>
       </div>
-      <div className="client-wall" aria-label="Daftar klien dan kolaborator">
-        {content.clients
-          .sort((a, b) => a.order - b.order)
-          .map((client, index) => (
-            <a
-              key={client.id}
-              href={client.websiteUrl || undefined}
-              aria-label={client.name}
-              className={!client.websiteUrl ? "is-static" : ""}
-            >
-              <span>0{index + 1}</span>
-              {client.logoUrl ? (
-                <img src={client.logoUrl} alt={client.logoAlt} />
-              ) : (
-                <strong>{client.name}</strong>
-              )}
-              
-            </a>
-          ))}
-      </div>
-    </section>
-  );
-}
-
-function ExpertiseSection({
-  content,
-  section,
-}: {
-  content: PublicSitePayload;
-  section: SectionSettings;
-}) {
-  const skills = useMemo(
-    () =>
-      content.skills
-        .filter((skill) => skill.isVisible)
-        .sort((a, b) => a.order - b.order),
-    [content.skills],
-  );
-  const [activeSkillId, setActiveSkillId] = useState<string | null>(null);
-  const stage = useRef<HTMLDivElement>(null);
-  const finePointer = useRef(false);
-
-  useEffect(() => {
-    finePointer.current =
-      window.matchMedia?.("(hover: hover) and (pointer: fine)").matches ?? false;
-  }, []);
-
-  useEffect(() => {
-    setActiveSkillId((current) =>
-      current && skills.some((skill) => skill.id === current) ? current : null,
-    );
-  }, [skills]);
-
-  const leaveStage = () => {
-    if (!stage.current?.contains(document.activeElement)) setActiveSkillId(null);
-  };
-
-  return (
-    <section
-      className="content-section expertise-section"
-      id="expertise"
-      style={sectionStyle(section)}
-    >
-      <div className="section-backdrop" />
-      <div className="expertise-copy">
-        <p className="section-index">05 — {section.label}</p>
-        <h2>{content.expertise.headline}</h2>
-        <p>{content.expertise.body}</p>
-        <small>{content.expertise.interactionHint}</small>
-      </div>
-      <div
-        className="expertise-stage"
-        ref={stage}
-        onMouseLeave={leaveStage}
-        onBlur={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-            setActiveSkillId(null);
-          }
-        }}
-      >
-        {skills.length ? (
-          <div className="expertise-list">
-            {skills.map((skill, index) => {
-              const active = activeSkillId === skill.id;
-              const detailId = `skill-detail-${skill.id}`;
-              return (
-                <article
-                  className={`expertise-skill ${active ? "is-active" : ""}`}
-                  key={skill.id}
-                >
-                  <button
-                    type="button"
-                    aria-expanded={active}
-                    aria-controls={detailId}
-                    onPointerEnter={(event) => {
-                      const hasMousePointer = event.pointerType === "mouse";
-                      finePointer.current = hasMousePointer;
-                      if (hasMousePointer) setActiveSkillId(skill.id);
-                    }}
-                    onFocus={() => setActiveSkillId(skill.id)}
-                    onClick={() =>
-                      setActiveSkillId((current) =>
-                        finePointer.current
-                          ? skill.id
-                          : current === skill.id
-                            ? null
-                            : skill.id,
-                      )
-                    }
-                  >
-                    <span>0{index + 1}</span>
-                    <strong>{skill.name}</strong>
-                    <IconPlus />
-                  </button>
-                  <div
-                    className="expertise-detail"
-                    id={detailId}
-                    role="region"
-                    aria-label={`Detail ${skill.name}`}
-                  >
-                    <div className="expertise-photo">
-                      <img
-                        src={skill.photoUrl}
-                        alt={skill.photoAlt}
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      
-                    </div>
-                    <div className="expertise-detail-copy">
-                      <p>{skill.specialistRole}</p>
-                      <h3>{skill.name}</h3>
-                      <p>{skill.description}</p>
-                      <div>
-                        <strong>{skill.specialistName}</strong>
-                        <span>{skill.specialistRole}</span>
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+      {clientPages.length > 0 && (
+        <div
+          className="client-carousel"
+          aria-roledescription="carousel"
+          aria-label="Daftar klien dan kolaborator"
+          onPointerDown={(event) => setSwipeStart(event.clientX)}
+          onPointerUp={(event) => {
+            if (swipeStart === null) return;
+            const distance = event.clientX - swipeStart;
+            if (Math.abs(distance) > 42) showPage(activePage + (distance < 0 ? 1 : -1));
+            setSwipeStart(null);
+          }}
+          onPointerCancel={() => setSwipeStart(null)}
+        >
+          <div className="client-carousel-viewport">
+            <div className="client-carousel-track" style={{ transform: `translateX(-${activePage * 100}%)` }}>
+              {clientPages.map((page, pageIndex) => (
+                <div className="client-carousel-page" aria-hidden={pageIndex !== activePage} key={`page-${pageIndex}`}>
+                  {page.map((client) => (
+                    <a
+                      key={client.id}
+                      href={client.websiteUrl || undefined}
+                      aria-label={client.name}
+                      tabIndex={pageIndex === activePage ? undefined : -1}
+                      className={`client-carousel-item ${!client.websiteUrl ? "is-static" : ""}`}
+                    >
+                      {client.logoUrl ? <img src={client.logoUrl} alt={client.logoAlt} /> : <strong>{client.name}</strong>}
+                    </a>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
-        ) : (
-          <p className="expertise-empty">Daftar skill sedang dipersiapkan.</p>
-        )}
-      </div>
+       </div>
+      )}
     </section>
   );
 }
+type ContactGalleryImage = PublicSitePayload["contact"]["galleryImages"][number];
+
 function ContactSection({
   content,
   section,
@@ -604,19 +416,46 @@ function ContactSection({
   section: SectionSettings;
 }) {
   const whatsapp = `https://wa.me/${content.settings.whatsapp.replace(/\D/g, "")}`;
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(content.settings.location)}`;
+  const galleryImages = content.contact.galleryImages;
+  const [activeImage, setActiveImage] = useState<ContactGalleryImage | null>(null);
+
+  useEffect(() => {
+    if (!activeImage) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActiveImage(null);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [activeImage]);
+
   return (
     <section
       className="content-section contact-section"
       id="contact"
       style={sectionStyle(section)}
     >
-      <div className="contact-media">
-        <img src={content.contact.imageUrl} alt={content.contact.imageAlt} />
+      <div className="section-backdrop" />
+      <div className={`contact-gallery contact-gallery-${content.contact.galleryVerticalAlignment}`} aria-label="Pilihan visual Perakaria">
+        {galleryImages.map((image, index) => (
+          <button
+            className="contact-gallery-card"
+            type="button"
+            key={`${image.title}-${index}`}
+            onClick={() => setActiveImage(image)}
+            aria-label={`Buka gambar ${image.title}`}
+            style={{
+              "--stack-index": index,
+              "--stack-depth": galleryImages.length - index,
+              "--stack-bottom": content.contact.galleryDirection === "descending-right" ? galleryImages.length - index - 1 : index,
+            } as React.CSSProperties}
+          >
+            <img src={image.imageUrl} alt={image.imageAlt} loading="lazy" decoding="async" />
+          </button>
+        ))}
       </div>
       <div className="contact-copy">
-        <p className="section-index">06 — CONTACT</p>
         <h2>{content.contact.headline}</h2>
-        <p>{content.contact.body}</p>
         <div className="contact-links">
           <a href={whatsapp} target="_blank" rel="noreferrer">
             {content.contact.whatsappLabel}
@@ -627,32 +466,41 @@ function ContactSection({
             <IconArrowDownRight />
           </a>
         </div>
-        <footer>
-          <Brand content={content} />
-          <p>{content.contact.footerNote}</p>
-          <div className="socials">
-            {content.settings.instagramUrl && (
-              <a href={content.settings.instagramUrl} aria-label="Instagram">
-                <IconBrandInstagram />
-              </a>
-            )}
-            {content.settings.linkedinUrl && (
-              <a href={content.settings.linkedinUrl} aria-label="LinkedIn">
-                <IconBrandLinkedin />
-              </a>
-            )}
-            {content.settings.vimeoUrl && (
-              <a href={content.settings.vimeoUrl} aria-label="Vimeo">
-                <IconBrandVimeo />
-              </a>
-            )}
-          </div>
-        </footer>
-      </div>
+        <div className="contact-location">
+          <p>Alamat</p>
+          <a href={mapsUrl} target="_blank" rel="noreferrer">
+            <span>{content.settings.location}</span>
+            <IconArrowDownRight />
+          </a>
+        </div>
+        <div className="socials" aria-label="Media sosial Perakaria">
+          {content.settings.instagramUrl && (
+            <a href={content.settings.instagramUrl} aria-label="Instagram">
+              <IconBrandInstagram />
+            </a>
+          )}
+          {content.settings.linkedinUrl && (
+            <a href={content.settings.linkedinUrl} aria-label="LinkedIn">
+              <IconBrandLinkedin />
+            </a>
+          )}
+          {content.settings.vimeoUrl && (
+            <a href={content.settings.vimeoUrl} aria-label="Vimeo">
+              <IconBrandVimeo />
+            </a>
+          )}
+        </div>
+      </div>      {activeImage && (
+        <div className="contact-lightbox" role="dialog" aria-modal="true" aria-label={`Preview ${activeImage.title}`} onClick={() => setActiveImage(null)}>
+          <button className="contact-lightbox-close" type="button" aria-label="Tutup preview" onClick={() => setActiveImage(null)}>
+            <IconX />
+          </button>
+          <img src={activeImage.imageUrl} alt={activeImage.imageAlt} onClick={(event) => event.stopPropagation()} />
+        </div>
+      )}
     </section>
   );
 }
-
 export default function App() {
   const [content, setContent] = useState(defaultSiteContent);
 
@@ -766,16 +614,18 @@ export default function App() {
   const orderedSections = useMemo(
     () =>
       content.sections
-        .filter((section) => section.isVisible)
-        .sort((a, b) => a.order - b.order),
+        .filter((section) => section.isVisible && primarySectionOrder.includes(section.id as (typeof primarySectionOrder)[number]))
+        .sort((a, b) => {
+          const aIndex = primarySectionOrder.indexOf(a.id as (typeof primarySectionOrder)[number]);
+          const bIndex = primarySectionOrder.indexOf(b.id as (typeof primarySectionOrder)[number]);
+          return (aIndex < 0 ? Number.MAX_SAFE_INTEGER : aIndex) - (bIndex < 0 ? Number.MAX_SAFE_INTEGER : bIndex);
+        }),
     [content.sections],
   );
   const renderers = {
     work: WorkSection,
-    services: ServicesSection,
     about: AboutSection,
     clients: ClientsSection,
-    expertise: ExpertiseSection,
     contact: ContactSection,
   };
   const theme = {
@@ -796,10 +646,14 @@ export default function App() {
       <main>
         {content.hero.isVisible && <Hero content={content} />}
         {orderedSections.map((section) => {
+          if (section.id === "services" || section.id === "expertise") return null;
           const Component = renderers[section.id];
           return <Component key={section.id} content={content} section={section} />;
         })}
       </main>
+      <footer className="site-footer">
+        <small>{content.contact.footerNote}</small>
+      </footer>
     </div>
   );
 }

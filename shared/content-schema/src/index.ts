@@ -116,12 +116,34 @@ export const heroSchema = z.object({
   ),
 });
 
+export const defaultAboutGridImages = [
+  { imageUrl: "/media/team-creative-director.png", imageAlt: "Tim kreatif meninjau storyboard di dalam studio.", label: "Cinematic" },
+  { imageUrl: "/media/work-post.png", imageAlt: "Editor bekerja di color grading suite.", label: "Visual Effects" },
+  { imageUrl: "/media/team-post-production.png", imageAlt: "Spesialis post-production melakukan color grading di studio.", label: "Color Grading" },
+  { imageUrl: "/media/team-cinematographer.png", imageAlt: "Tim produksi menyiapkan kamera sinema di studio.", label: "3D & 2D Animation" },
+  { imageUrl: "/media/work-mapping.png", imageAlt: "Instalasi cahaya dan projection mapping.", label: "Motion Design" },
+  { imageUrl: "/media/team-creative-technologist.png", imageAlt: "Creative technologist menguji instalasi visual interaktif.", label: "Visual Effects (VFX)" },
+  { imageUrl: "/media/work-interactive.png", imageAlt: "Instalasi digital generatif di ruang gelap.", label: "Color Grading" },
+  { imageUrl: "/media/work-camera-rig.png", imageAlt: "Kamera sinema di lokasi produksi.", label: "Software Engineering" },
+  { imageUrl: "/media/work-live.png", imageAlt: "Pertunjukan visual dengan cahaya panggung.", label: "Technical Art" },
+] as const;
+
+const aboutGridImageSchema = z.object({
+  imageUrl: mediaPath,
+  imageAlt: z.string().min(1).max(180),
+  label: z.string().min(1).max(80),
+});
+
 export const aboutSchema = z.object({
   kicker: z.string().max(60),
   headline: z.string().min(1).max(120),
   body: z.string().min(1).max(800),
   imageUrl: mediaPath,
   imageAlt: z.string().min(1).max(180),
+  gridImages: z.array(aboutGridImageSchema).length(9).default(defaultAboutGridImages.map((image) => ({ ...image }))),
+  gridTrim: z.number().int().min(0).max(24).default(5),
+  gridLabelSize: z.number().int().min(8).max(24).default(14),
+  gridVerticalPadding: z.number().int().min(0).max(24).default(7),
   metrics: z.array(
     z.object({
       value: z.string().min(1).max(20),
@@ -195,14 +217,28 @@ export const clientSchema = z.object({
   }
 });
 
+const defaultContactGalleryImages = [
+  { imageUrl: "/media/work-camera-rig.png", imageAlt: "Kamera sinema profesional di studio", title: "Camera rig" },
+  { imageUrl: "/media/work-lighting-stage.png", imageAlt: "Pencahayaan panggung untuk produksi", title: "Lighting stage" },
+  { imageUrl: "/media/work-motion-design.png", imageAlt: "Eksperimen visual untuk motion design", title: "Motion design" },
+  { imageUrl: "/media/about-creative-tech.png", imageAlt: "Kreator mengoperasikan teknologi kreatif", title: "Creative tech" },
+  { imageUrl: "/media/about-interactive-media.png", imageAlt: "Instalasi media interaktif", title: "Interactive media" },
+] as const;
+
+const contactGalleryImageSchema = z.object({
+  imageUrl: mediaPath,
+  imageAlt: z.string().min(1).max(180),
+  title: z.string().min(1).max(80),
+});
+
 export const contactSchema = z.object({
   headline: z.string().min(1).max(120),
-  body: z.string().min(1).max(320),
   whatsappLabel: z.string().max(40),
   emailLabel: z.string().max(40),
-  imageUrl: optionalMediaPath,
-  imageAlt: z.string().default(""),
-  footerNote: z.string().max(180),
+  galleryImages: z.array(contactGalleryImageSchema).min(1).max(5).default(defaultContactGalleryImages.map((image) => ({ ...image }))),
+  galleryDirection: z.enum(["descending-right", "ascending-right"]).default("descending-right"),
+  galleryVerticalAlignment: z.enum(["start", "center", "end"]).default("center"),
+  footerNote: z.string().min(1).max(180),
 });
 
 export const dataSchemas = {
@@ -355,7 +391,7 @@ export const defaultSiteContent: PublicSitePayload = {
     instagramUrl: "",
     linkedinUrl: "",
     vimeoUrl: "",
-    location: "Indonesia",
+    location: "Jl. Duren I No. 129, Rangkapan Jaya Baru, Kec. Pancoran Mas, Kota Depok, Jawa Barat 16434",
     seoTitle: "Perakaria — Creative & Production House",
     seoDescription:
       "Perakaria adalah Creative & Production House untuk Audio Visual Production, Design & Branding, serta solusi digital interaktif.",
@@ -363,9 +399,8 @@ export const defaultSiteContent: PublicSitePayload = {
     canonicalUrl: "",
     navigation: [
       { label: "Work", href: "#work" },
-      { label: "Layanan", href: "#services" },
-      { label: "Tentang", href: "#about" },
       { label: "Klien", href: "#clients" },
+      { label: "Tentang", href: "#about" },
       { label: "Kontak", href: "#contact" },
     ],
   },
@@ -395,18 +430,6 @@ export const defaultSiteContent: PublicSitePayload = {
       focalPoint: { x: 50, y: 50 },
     },
     {
-      id: "services",
-      label: "Layanan",
-      intro: "Dari Video Production hingga Creative Tech, kami menghubungkan cerita, craft, dan teknologi.",
-      order: 2,
-      isVisible: true,
-      backgroundMode: "solid",
-      backgroundColor: "#15161B",
-      backgroundImageUrl: "",
-      overlayOpacity: 0.4,
-      focalPoint: { x: 50, y: 50 },
-    },
-    {
       id: "about",
       label: "Creative + Technology",
       intro: "",
@@ -422,7 +445,7 @@ export const defaultSiteContent: PublicSitePayload = {
       id: "clients",
       label: "Our Clients",
       intro: "Kami berkolaborasi dengan brand dan institusi di berbagai sektor.",
-      order: 4,
+      order: 2,
       isVisible: true,
       backgroundMode: "solid",
       backgroundColor: "#15161B",
@@ -431,28 +454,16 @@ export const defaultSiteContent: PublicSitePayload = {
       focalPoint: { x: 50, y: 50 },
     },
     {
-      id: "expertise",
-      label: "Tentang Perakaria",
+      id: "contact",
+      label: "Alamat & Kontak",
       intro: "",
-      order: 5,
+      order: 4,
       isVisible: true,
       backgroundMode: "solid",
       backgroundColor: "#090A0D",
       backgroundImageUrl: "",
-      overlayOpacity: 0.4,
+      overlayOpacity: 0,
       focalPoint: { x: 50, y: 50 },
-    },
-    {
-      id: "contact",
-      label: "Alamat & Kontak",
-      intro: "",
-      order: 6,
-      isVisible: true,
-      backgroundMode: "image",
-      backgroundColor: "#090A0D",
-      backgroundImageUrl: "/media/about-studio-floor.png",
-      overlayOpacity: 0.56,
-      focalPoint: { x: 64, y: 50 },
     },
   ],
   hero: {
@@ -485,6 +496,10 @@ export const defaultSiteContent: PublicSitePayload = {
       "Kami adalah Creative and Production House dengan pengalaman lebih dari satu dekade, dibangun atas dasar komitmen terhadap kualitas, estetika, dan ketepatan sasaran. Bidang kami mencakup Video Production secara menyeluruh, mulai dari Cinematic, 3D & 2D Animation, serta inovasi digital melalui Software Engineering dan Creative Tech. Kami memadukan energi kreatif yang segar dengan keahlian teknis yang inovatif untuk menghasilkan karya berstandar tinggi. Jangkauan global kami menjadi bukti komitmen kami dalam menghadirkan solusi yang dirancang presisi, dieksekusi dengan mulus, dan memberikan dampak nyata bagi setiap klien.",
     imageUrl: "/media/about-studio-floor.png",
     imageAlt: "Tim produksi di dalam studio film.",
+    gridImages: defaultAboutGridImages.map((image) => ({ ...image })),
+    gridTrim: 5,
+    gridLabelSize: 14,
+    gridVerticalPadding: 7,
     metrics: [
       { value: "10+", label: "Tahun pengalaman", isPlaceholder: false },
       { value: "Global", label: "Jangkauan", isPlaceholder: false },
@@ -511,7 +526,7 @@ export const defaultSiteContent: PublicSitePayload = {
       category: "creative",
       description:
         "Sistem visual dan pengalaman brand yang dibangun dengan arah kreatif yang jelas.",
-      details: ["Product Showcase", "Visuals Event Packages", "Digital Branding"],
+      details: ["Interactive Media", "Product Showcase", "Virtual Showrooms", "Visuals Event Packages", "Game, AR / VR", "Web Design", "Digital Branding"],
       order: 2,
       isVisible: true,
     },
@@ -521,7 +536,7 @@ export const defaultSiteContent: PublicSitePayload = {
       category: "technology",
       description:
         "Pengalaman digital interaktif yang menghubungkan ruang, audiens, dan teknologi.",
-      details: ["Interactive Media", "Virtual Showrooms", "Game", "AR / VR"],
+      details: [],
       order: 3,
       isVisible: true,
     },
@@ -531,7 +546,7 @@ export const defaultSiteContent: PublicSitePayload = {
       category: "technology",
       description:
         "Software Engineering dan Creative Tech untuk solusi digital yang fungsional dan berkarakter.",
-      details: ["Web Design", "Software Engineering", "Creative Tech"],
+      details: [],
       order: 4,
       isVisible: true,
     },
@@ -639,8 +654,6 @@ export const defaultSiteContent: PublicSitePayload = {
     "Prodia",
     "Koperasi Astra",
     "Wonderful Indonesia",
-    "Puteri Indonesia",
-    "Enjoy Jakarta",
   ].map((name, index) => ({
     id: `client-${index + 1}`,
     name,
@@ -652,12 +665,11 @@ export const defaultSiteContent: PublicSitePayload = {
     isPlaceholder: false,
   })),  contact: {
     headline: "Alamat & Kontak",
-    body:
-      "Mari berkolaborasi untuk produksi, desain, dan solusi digital yang tepat bagi kebutuhan Anda.",
     whatsappLabel: "WhatsApp",
     emailLabel: "Email",
-    imageUrl: "/media/contact-conversation.png",
-    imageAlt: "Percakapan tim kreatif di ruang studio dengan pencahayaan hangat.",
+    galleryImages: defaultContactGalleryImages.map((image) => ({ ...image })),
+    galleryDirection: "descending-right",
+    galleryVerticalAlignment: "center",
     footerNote: "© 2026 Perakaria. Creative & Production House.",
   },
 };
