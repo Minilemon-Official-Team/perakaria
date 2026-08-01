@@ -1,0 +1,4 @@
+import { describe,expect,it } from "vitest";
+import { composePublicSite,type ContentRow } from "./db";
+const row=(status:"draft"|"published",headline:string):ContentRow=>({id:status,content_type:"hero",locale:"id",slug:"hero",data_json:JSON.stringify({headline}),status,sort_order:0,is_visible:1,rejection_reason:null,created_by:"u",updated_by:"u",approved_by:null,approved_at:null,published_at:null,created_at:"",updated_at:""});
+describe("public aggregation",()=>{it("never leaks draft rows",()=>{expect(composePublicSite([row("draft","RAHASIA")]).hero.headline).not.toBe("RAHASIA")});it("uses published rows",()=>{expect(composePublicSite([row("published","LIVE")]).hero.headline).toBe("LIVE")});it("keeps the new expertise section when older published section sets are composed",()=>{const payload=composePublicSite([]);expect(payload.sections.some(section=>section.id==="expertise")).toBe(true);expect(payload.skills).toHaveLength(4)})});

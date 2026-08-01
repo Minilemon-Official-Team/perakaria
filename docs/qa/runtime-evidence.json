@@ -1,0 +1,97 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 1000,
+    "deviceScaleFactor": 1
+  },
+  "fullPageHeight": 6845,
+  "desktopHero": {
+    "fullBleed": true,
+    "copyBackground": "rgba(0, 0, 0, 0)",
+    "hasMetadata": false,
+    "hasSecondaryWorkLink": false
+  },
+  "selectedWork": {
+    "autoStart": 43,
+    "autoEnd": 674,
+    "autoAdvanced": true,
+    "dragStart": 674,
+    "dragEnd": 1306,
+    "desktopDragAdvanced": true,
+    "mobileSwipeStart": 20,
+    "mobileSwipeEnd": 370,
+    "mobileSwipeAdvanced": true
+  },
+  "capabilities": {
+    "openCount": 1,
+    "firstOpen": false,
+    "secondOpen": true,
+    "secondExpanded": "true"
+  },
+  "smoothNavigation": {
+    "start": 0,
+    "mid": 2024,
+    "end": 3121,
+    "progressed": true,
+    "settled": true,
+    "hash": "#about"
+  },
+  "expertise": {
+    "desktopHover": {
+      "beforeContact": true,
+      "expanded": "true",
+      "activeCount": 1,
+      "visible": true,
+      "clipPath": "inset(0px)",
+      "imageLoaded": true,
+      "detailTitle": "Video Production"
+    },
+    "tapTarget": {
+      "left": 20,
+      "right": 370,
+      "top": 408.734375,
+      "bottom": 500.734375
+    },
+    "mobileTap": {
+      "expanded": "true",
+      "hitTag": "STRONG",
+      "hitText": "Video Production",
+      "buttonPointerEvents": "auto",
+      "activeCount": 1,
+      "display": "grid",
+      "imageLoaded": true,
+      "scrollWidth": 390,
+      "clientWidth": 390
+    }
+  },
+  "cmsExpertise": {
+    "headline": "Kreativitas yang dieksekusi dengan presisi.",
+    "skillCards": 4,
+    "photoPreviews": 4,
+    "loadedPhotos": 4
+  },
+  "cmsLogos": {
+    "brandLogo": true,
+    "favicon": true,
+    "ogImage": true,
+    "clientLogoTargets": 8,
+    "firstClientTarget": "Logo klien: JTI",
+    "skillPhotoTargets": 4
+  },
+  "mobileHero": {
+    "fullBleed": true,
+    "viewportHeight": 844,
+    "heroHeight": 844,
+    "visibleCopyChildren": [
+      "h1",
+      "hero-body"
+    ],
+    "eyebrowDisplay": "none",
+    "actionsDisplay": "none",
+    "menuOpen": "true",
+    "focus": true,
+    "scrollWidth": 390,
+    "clientWidth": 390
+  },
+  "consoleErrors": []
+}

@@ -1,0 +1,33 @@
+{
+  "name": "cms-admin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/prepare-sites-build.mjs",
+    "preview": "vite preview",
+    "test:sites": "node --test tests/sites-worker.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run src --passWithNoTests"
+  },
+  "dependencies": {
+    "@fontsource/archivo": "^5.2.6",
+    "@perakaria/content-schema": "0.1.0",
+    "@tabler/icons-react": "^3.34.0",
+    "@tiptap/react": "^2.26.1",
+    "@tiptap/starter-kit": "^2.26.1",
+    "@vitejs/plugin-react": "5.0.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "6.4.2"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "jsdom": "^26.1.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

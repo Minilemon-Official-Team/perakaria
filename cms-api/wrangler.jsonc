@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "perakaria-cms-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-07-12",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "ENVIRONMENT": "development",
+    "CMS_ALLOWED_ORIGINS": "http://localhost:4173,http://localhost:4174",
+    "PUBLIC_ASSET_BASE_URL": "http://localhost:8787/assets"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "perakaria_cms_db",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ASSETS",
+      "bucket_name": "perakaria-cms-assets"
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "head_sampling_rate": 1
+    }
+  }
+}
