@@ -115,11 +115,24 @@ const requireSuperadmin = createMiddleware<AppBindings>(async (c, next) => {
 const ensureThemeContrast = (contentType: ContentType, data: unknown) => {
   if (contentType !== "theme_settings") return;
   const theme = themeSettingsSchema.parse(data);
-  if (contrastRatio(theme.background, theme.text) < 4.5) {
-    throw new Error("Kontras warna teks utama dan background harus minimal 4.5:1.");
+  const palette = theme.palette;
+  // Text 1 is used directly on the dark backgrounds. Text 2 is the dark
+  // ink used on the light/purple title surfaces; requiring it against the
+  // dark backgrounds would reject the approved #000 palette unnecessarily.
+  const bodyPairs = [
+    [palette.backgroundPrimary, palette.textPrimary],
+    [palette.backgroundSecondary, palette.textPrimary],
+    [palette.titlePrimary, palette.textSecondary],
+    [palette.titleSecondary, palette.textSecondary],
+  ] as const;
+  if (bodyPairs.some(([background, text]) => contrastRatio(background, text) < 4.5)) {
+    throw new Error("Semua kombinasi text dan background harus minimal 4.5:1.");
   }
-  if (contrastRatio(theme.background, theme.muted) < 4.5) {
-    throw new Error("Kontras warna teks sekunder dan background harus minimal 4.5:1.");
+  if (contrastRatio(palette.backgroundPrimary, palette.titlePrimary) < 3 || contrastRatio(palette.backgroundSecondary, palette.titlePrimary) < 3) {
+    throw new Error("Title 1 harus memiliki kontras minimal 3:1 terhadap kedua background.");
+  }
+  if (contrastRatio(palette.backgroundPrimary, palette.titleSecondary) < 3 || contrastRatio(palette.backgroundSecondary, palette.titleSecondary) < 3) {
+    throw new Error("Title 2 harus memiliki kontras minimal 3:1 terhadap kedua background.");
   }
 };
 
@@ -154,7 +167,7 @@ app.get("/public/site", async (c) => {
   const serialized = JSON.stringify(payload);
   const etag = `"${await hashToken(serialized)}"`;
   if (c.req.header("If-None-Match") === etag) return c.body(null, 304);
-  c.header("Cache-Control", "public, max-age=60, s-maxage=300");
+  c.header("Cache-Control", "no-store");
   c.header("ETag", etag);
   return c.json(ok(payload));
 });
@@ -382,6 +395,28 @@ app.patch("/admin/content/entries/:id/:action", requireAuth, async (c) => {
       .run();
     return c.json(ok({ status: "pending_review" }));
   }
+  if (action === "publish") {
+    if (row.status === "published") return c.json(ok({ status: "published" }));
+    if (!canRunWorkflow(user.role, action, row.status, true)) {
+      return c.json({ error: "Hanya draft yang dapat dipublish langsung." }, 409);
+    }
+    await c.env.DB.batch([
+      c.env.DB.prepare(
+        `UPDATE content_entries
+            SET status = 'archived', updated_by = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE content_type = ? AND locale = ? AND slug = ?
+            AND status = 'published' AND id != ?`,
+      ).bind(user.id, row.content_type, row.locale, row.slug, row.id),
+      c.env.DB.prepare(
+        `UPDATE content_entries
+            SET status = 'published', approved_by = ?, approved_at = CURRENT_TIMESTAMP,
+                published_at = CURRENT_TIMESTAMP, rejection_reason = NULL,
+                updated_by = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?`,
+      ).bind(user.id, user.id, row.id),
+    ]);
+    return c.json(ok({ status: "published" }));
+  }
   if (user.role !== "superadmin") {
     return c.json({ error: "Aksi ini membutuhkan superadmin." }, 403);
   }
@@ -547,3 +582,7 @@ app.delete("/admin/users/:id", requireAuth, requireSuperadmin, async (c) => {
 app.all("*", (c) => c.json({ error: "Route tidak ditemukan." }, 404));
 
 export default app;
+
+
+
+

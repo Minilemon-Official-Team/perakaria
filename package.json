@@ -5,15 +5,18 @@
   "type": "module",
   "workspaces": [
     "website",
+    "website-v2",
     "cms-admin",
     "cms-api",
     "shared/content-schema"
   ],
   "scripts": {
     "dev:website": "npm run dev --workspace website",
+    "dev:v2": "npm run dev --workspace website-v2",
     "dev:cms": "npm run dev --workspace cms-admin",
     "dev:api": "npm run dev --workspace cms-api",
     "build": "npm run build --workspace @perakaria/content-schema && npm run build --workspace cms-api && npm run build --workspace website && npm run build --workspace cms-admin",
+    "build:v2": "npm run build --workspace website-v2",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "impeccable:check": "npx impeccable check",
