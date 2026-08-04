@@ -248,15 +248,15 @@ export const clientSchema = z.object({
 });
 
 const defaultContactGalleryImages = [
-  { imageUrl: "/assets/contact/tile-1.svg", imageAlt: "Visual contact Perakaria 01", title: "Studio visual 01" },
-  { imageUrl: "/assets/contact/tile-2.svg", imageAlt: "Visual contact Perakaria 02", title: "Studio visual 02" },
-  { imageUrl: "/assets/contact/tile-3.svg", imageAlt: "Visual contact Perakaria 03", title: "Studio visual 03" },
-  { imageUrl: "/assets/contact/tile-4.svg", imageAlt: "Visual contact Perakaria 04", title: "Studio visual 04" },
-  { imageUrl: "/assets/contact/tile-5.svg", imageAlt: "Visual contact Perakaria 05", title: "Studio visual 05" },
-  { imageUrl: "/assets/contact/tile-6.svg", imageAlt: "Visual contact Perakaria 06", title: "Studio visual 06" },
-  { imageUrl: "/assets/contact/tile-7.svg", imageAlt: "Visual contact Perakaria 07", title: "Studio visual 07" },
-  { imageUrl: "/assets/contact/tile-8.svg", imageAlt: "Visual contact Perakaria 08", title: "Studio visual 08" },
-  { imageUrl: "/assets/contact/tile-9.svg", imageAlt: "Visual contact Perakaria 09", title: "Studio visual 09" },
+  { imageUrl: "/assets/contact/grid-01.png", imageAlt: "Visual contact Perakaria 01", title: "Studio visual 01" },
+  { imageUrl: "/assets/contact/grid-02.png", imageAlt: "Visual contact Perakaria 02", title: "Studio visual 02" },
+  { imageUrl: "/assets/contact/grid-03.png", imageAlt: "Visual contact Perakaria 03", title: "Studio visual 03" },
+  { imageUrl: "/assets/contact/grid-04.png", imageAlt: "Visual contact Perakaria 04", title: "Studio visual 04" },
+  { imageUrl: "/assets/contact/grid-05.png", imageAlt: "Visual contact Perakaria 05", title: "Studio visual 05" },
+  { imageUrl: "/assets/contact/grid-06.png", imageAlt: "Visual contact Perakaria 06", title: "Studio visual 06" },
+  { imageUrl: "/assets/contact/grid-07.png", imageAlt: "Visual contact Perakaria 07", title: "Studio visual 07" },
+  { imageUrl: "/assets/contact/grid-08.png", imageAlt: "Visual contact Perakaria 08", title: "Studio visual 08" },
+  { imageUrl: "/assets/contact/grid-09.png", imageAlt: "Visual contact Perakaria 09", title: "Studio visual 09" },
 ] as const;
 
 const contactGalleryImageSchema = z.object({
@@ -909,9 +909,9 @@ export const defaultSiteContent: PublicSitePayload = {
       isPlaceholder: true,
     },
   ],  clients: [
-    ["JTI", "/assets/clients/jti.svg"],
-    ["Danone", "/assets/clients/danone.svg"],
-    ["Koperasi Astra", "/assets/clients/koperasi-astra.svg"],
+    ["JTI", "/assets/clients/jti-reference.png"],
+    ["Danone", "/assets/clients/danone-reference.png"],
+    ["Koperasi Astra", "/assets/clients/koperasi-astra-reference.png"],
     ["Wonderful Indonesia", ""],
     ["Toyota", "/assets/clients/toyota-reference.png"],
     ["Prodia", "/assets/clients/prodia-reference.png"],

@@ -21,9 +21,9 @@ v2Fallback.about.mediaType = "video";
 v2Fallback.about.videoUrl = "/assets/about/showreel.mp4";
 v2Fallback.about.body = "Fokus di bidang Video Production & Interactive Media, dengan pendekatan storytelling, sentuhan artistik dan teknologi inovatif sesuai trend audience saat ini.\n\nMenawarkan ide tetap sasaran, komunikasi efektif, manajemen terukur dan mengedepankan hasil akhir yang memukau.";
 v2Fallback.clients = [
-  ["JTI", "/assets/clients/jti.svg"],
-  ["Danone", "/assets/clients/danone.svg"],
-  ["Koperasi Astra", "/assets/clients/koperasi-astra.svg"],
+  ["JTI", "/assets/clients/jti-reference.png"],
+  ["Danone", "/assets/clients/danone-reference.png"],
+  ["Koperasi Astra", "/assets/clients/koperasi-astra-reference.png"],
   ["Wonderful Indonesia", ""],
   ["Toyota", "/assets/clients/toyota-reference.png"],
   ["Prodia", "/assets/clients/prodia-reference.png"],
@@ -58,7 +58,7 @@ v2Fallback.portfolio = Array.from({ length: 19 }, (_, index) => ({
   isPlaceholder: true,
 }));
 v2Fallback.contact.galleryImages = Array.from({ length: 9 }, (_, index) => ({
-  imageUrl: `/assets/contact/tile-${index + 1}.svg`,
+  imageUrl: `/assets/contact/grid-${String(index + 1).padStart(2, "0")}.png`,
   imageAlt: `Visual contact Perakaria ${String(index + 1).padStart(2, "0")}`,
   title: `Studio visual ${String(index + 1).padStart(2, "0")}`,
 }));
