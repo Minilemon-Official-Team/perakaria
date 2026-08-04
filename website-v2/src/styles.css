@@ -876,8 +876,8 @@ section[id] {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;
-  text-align: center;
+  align-items: flex-start;
+  text-align: left;
 }
 
 /* LET'S BUILD — Bebas Neue 150px, #8C62EF, ls -3px, lh 0.85 */
@@ -925,7 +925,7 @@ section[id] {
   height: clamp(50px, 3.4vw, 65px);
   background: transparent;
   border: 0.5px solid var(--color-purple);
-  color: var(--color-purple);
+  color: #FFF;
   font-family: "Harmattan", sans-serif;
   font-size: clamp(16px, 1.3vw, 25px);
   letter-spacing: 4px;
@@ -1247,7 +1247,7 @@ section[id] {
 .section .hero-title-secondary, .section .services-heading-2, .section .contact-heading-2 { color: var(--theme-title-secondary, #D9D9D9); }
 .section .hero-body, .section .about-body, .section .services-list, .section .contact-address, .section .hero-availability-text { color: var(--section-text, var(--theme-text-primary, #FFFFFF)); }
 .section .about-button, .section .services-check { background: var(--section-title, var(--theme-title-primary, #8C62EF)); color: var(--theme-text-secondary, #000000); }
-.section .contact-button { border-color: var(--section-title, var(--theme-title-primary, #8C62EF)); color: var(--section-title, var(--theme-title-primary, #8C62EF)); }
+.section .contact-button { border-color: var(--section-title, var(--theme-title-primary, #8C62EF)); color: #FFF; }
 .section .contact-button:hover, .section .contact-button:focus-visible { background: var(--section-title, var(--theme-title-primary, #8C62EF)); color: var(--theme-text-secondary, #000000); }
 .hero-bg::after { background: color-mix(in srgb, var(--section-bg, #06121C) 78%, transparent); }
 .hero-availability-circle { background: var(--section-title, var(--theme-title-primary, #8C62EF)); box-shadow: none; }

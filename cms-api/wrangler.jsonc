@@ -7,7 +7,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
     "ENVIRONMENT": "production",
-    "CMS_ALLOWED_ORIGINS": "https://perakaria-site.minilemon-tech.workers.dev,https://perakaria-cms.minilemon-tech.workers.dev",
+    "CMS_ALLOWED_ORIGINS": "https://perakaria.com,https://perakaria-site.minilemon-tech.workers.dev,https://perakaria-cms.minilemon-tech.workers.dev",
     "PUBLIC_ASSET_BASE_URL": "https://perakaria-cms-api.minilemon-tech.workers.dev/assets"
   },
   "d1_databases": [
