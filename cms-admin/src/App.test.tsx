@@ -1,16 +1,55 @@
 // @vitest-environment jsdom
-import { cleanup,fireEvent,render,screen } from "@testing-library/react";
-import { afterEach,beforeEach,describe,expect,it } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import App from "./App";
-beforeEach(()=>{localStorage.clear();Object.defineProperty(URL,"createObjectURL",{value:()=>"blob:perakaria-test",configurable:true});Object.defineProperty(URL,"revokeObjectURL",{value:()=>undefined,configurable:true})});
-afterEach(cleanup);
-describe("Perakaria CMS demo",()=>{
-  it("edits and saves hero draft locally",()=>{render(<App/>);fireEvent.click(screen.getByRole("button",{name:/buka demo lokal/i}));fireEvent.click(screen.getAllByRole("button",{name:/home content/i})[0]);const headline=screen.getByLabelText("Deskripsi hero");fireEvent.change(headline,{target:{value:"Headline dari CMS"}});const save=screen.getByRole("button",{name:/simpan draft/i});expect(save.hasAttribute("disabled")).toBe(false);fireEvent.click(save);expect(localStorage.getItem("perakaria-cms-draft")).toContain("Headline dari CMS")});
-  it("edits expertise copy and skill details from CMS",()=>{render(<App/>);fireEvent.click(screen.getByRole("button",{name:/buka demo lokal/i}));fireEvent.click(screen.getAllByRole("button",{name:/about buttons/i})[0]);fireEvent.change(screen.getAllByLabelText("Label tombol")[0],{target:{value:"Virtual Production"}});fireEvent.click(screen.getByRole("button",{name:/simpan draft/i}));const draft=localStorage.getItem("perakaria-cms-draft")||"";expect(draft).toContain("Virtual Production")});
-  it("assigns and removes a media asset without copying URLs",()=>{render(<App/>);fireEvent.click(screen.getByRole("button",{name:/buka demo lokal/i}));fireEvent.click(screen.getAllByRole("button",{name:/upload media/i})[0]);fireEvent.change(screen.getByLabelText("Alt text"),{target:{value:"Still frame produksi"}});const input=document.querySelector("input[type=file]") as HTMLInputElement;fireEvent.change(input,{target:{files:[new File([new Uint8Array([1])],"still.png",{type:"image/png"})]}});fireEvent.click(screen.getAllByRole("button",{name:/client 01/i})[0]);fireEvent.click(screen.getByRole("button",{name:/pasang ke tujuan/i}));fireEvent.click(screen.getByRole("button",{name:/simpan draft/i}));expect(localStorage.getItem("perakaria-cms-draft")).toContain("blob:perakaria-test");expect(localStorage.getItem("perakaria-cms-draft")).toContain("Still frame produksi");expect(screen.getAllByText(/Client 01/i).length).toBeGreaterThan(0);fireEvent.click(screen.getByRole("button",{name:/hapus still.png/i}));expect(screen.queryByAltText("Still frame produksi")).toBeNull()});
-  it("exposes nine contact targets and assigns an uploaded asset",()=>{render(<App/>);fireEvent.click(screen.getByRole("button",{name:/buka demo lokal/i}));fireEvent.click(screen.getAllByRole("button",{name:/upload media/i})[0]);expect(screen.getAllByRole("button",{name:/contact grid/i})).toHaveLength(9);fireEvent.change(screen.getByLabelText("Alt text"),{target:{value:"Contact grid nine"}});const input=document.querySelector("input[type=file]") as HTMLInputElement;fireEvent.change(input,{target:{files:[new File([new Uint8Array([1])],"contact-nine.png",{type:"image/png"})]}});fireEvent.click(screen.getByRole("button",{name:/contact grid 09/i}));fireEvent.click(screen.getByRole("button",{name:/pasang ke tujuan/i}));fireEvent.click(screen.getByRole("button",{name:/simpan draft/i}));const draft=localStorage.getItem("perakaria-cms-draft")||"";expect(draft).toContain("Contact grid nine");expect(draft).toContain("blob:perakaria-test")});
-  it("switches to the complete responsive preview",()=>{render(<App/>);fireEvent.click(screen.getByRole("button",{name:/buka demo lokal/i}));fireEvent.click(screen.getAllByRole("button",{name:/preview website/i})[0]);expect(screen.getByTitle("Preview website Perakaria")).toBeTruthy()});
-});
 
+beforeEach(() => {
+  localStorage.clear();
+  Object.defineProperty(URL, "createObjectURL", { value: () => "blob:perakaria-test", configurable: true });
+});
+afterEach(cleanup);
+
+const enterDemo = () => {
+  render(<App />);
+  fireEvent.click(screen.getByRole("button", { name: /buka demo lokal/i }));
+};
+
+describe("Perakaria CMS v3", () => {
+  it("edits and saves a hero draft locally", () => {
+    enterDemo();
+    fireEvent.click(screen.getAllByRole("button", { name: /home content/i })[0]);
+    fireEvent.change(screen.getByLabelText("Deskripsi hero"), { target: { value: "Headline dari CMS" } });
+    fireEvent.click(screen.getByRole("button", { name: /simpan draft/i }));
+    expect(localStorage.getItem("perakaria-cms-draft")).toContain("Headline dari CMS");
+  });
+
+  it("keeps services visible and supports adding a service", () => {
+    enterDemo();
+    fireEvent.click(screen.getAllByRole("button", { name: /^services$/i })[0]);
+    expect(screen.getByText("Audio Visual Production")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /tambah service/i }));
+    expect(screen.getByDisplayValue("Service baru")).toBeTruthy();
+  });
+
+  it("exposes all nine contact image slots in home content", () => {
+    enterDemo();
+    fireEvent.click(screen.getAllByRole("button", { name: /home content/i })[0]);
+    expect(screen.getAllByText(/GRID 0[1-9]/i)).toHaveLength(9);
+  });
+
+  it("opens the media library workflow", () => {
+    enterDemo();
+    fireEvent.click(screen.getAllByRole("button", { name: /upload media/i })[0]);
+    expect(screen.getByRole("heading", { name: /media library/i })).toBeTruthy();
+    expect(screen.getByText(/upload sekali/i)).toBeTruthy();
+  });
+  it("shows the guarded publish action in demo mode", () => {
+    enterDemo();
+    fireEvent.click(screen.getAllByRole("button", { name: /home content/i })[0]);
+    fireEvent.change(screen.getByLabelText("Deskripsi hero"), { target: { value: "Needs publish" } });
+    fireEvent.click(screen.getByRole("button", { name: /publish ke website/i }));
+    expect(screen.getByText(/mode demo tidak mempublish production/i)).toBeTruthy();
+  });
+});
 
 

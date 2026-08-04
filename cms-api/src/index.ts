@@ -15,6 +15,7 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { createMiddleware } from "hono/factory";
 import { z } from "zod";
 import { composePublicSite, mapContentRow, type ContentRow } from "./db";
+import { ensureSiteSnapshots, parseSnapshot, validateSnapshot, type SiteSnapshotRow } from "./site-snapshot";
 import {
   contrastRatio,
   createSessionToken,
@@ -140,6 +141,71 @@ app.get("/public/health", (c) =>
   c.json(ok({ status: "ok", service: "perakaria-cms-api" })),
 );
 
+app.get("/admin/site/draft", requireAuth, requireSuperadmin, async (c) => {
+  const snapshots = await ensureSiteSnapshots(c.env.DB, c.get("user").id);
+  const working = snapshots.get("working");
+  const published = snapshots.get("published");
+  if (!working || !published) return c.json({ error: "Snapshot CMS belum tersedia." }, 503);
+  return c.json(ok({
+    draft: parseSnapshot(working),
+    published: parseSnapshot(published),
+    meta: {
+      draftId: working.id,
+      draftUpdatedAt: working.updated_at,
+      publishedId: published.id,
+      publishedAt: published.published_at,
+      hasChanges: working.data_json !== published.data_json,
+    },
+  }));
+});
+
+app.put("/admin/site/draft", requireAuth, requireSuperadmin, async (c) => {
+  const body = z.object({
+    data: z.unknown(),
+    revisionId: z.string().uuid().optional(),
+  }).parse(await c.req.json());
+  const snapshots = await ensureSiteSnapshots(c.env.DB, c.get("user").id);
+  const working = snapshots.get("working");
+  if (!working) return c.json({ error: "Working draft belum tersedia." }, 503);
+  if (body.revisionId && body.revisionId !== working.id) {
+    return c.json({ error: "Draft sudah berubah. Muat ulang CMS sebelum menyimpan." }, 409);
+  }
+  const validated = validateSnapshot(body.data);
+  ensureThemeContrast("theme_settings", validated.theme);
+  await c.env.DB.prepare(
+    "UPDATE site_revisions SET data_json = ?, updated_by = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'working'",
+  ).bind(JSON.stringify(validated), c.get("user").id, working.id).run();
+  const updated = await c.env.DB.prepare("SELECT * FROM site_revisions WHERE id = ?").bind(working.id).first<SiteSnapshotRow>();
+  return c.json(ok({
+    draft: updated ? parseSnapshot(updated) : validated,
+    meta: { draftId: working.id, draftUpdatedAt: updated?.updated_at ?? new Date().toISOString(), hasChanges: true },
+  }));
+});
+
+app.post("/admin/site/publish", requireAuth, requireSuperadmin, async (c) => {
+  const body = z.object({ revisionId: z.string().uuid().optional() }).parse(await c.req.json().catch(() => ({})));
+  const snapshots = await ensureSiteSnapshots(c.env.DB, c.get("user").id);
+  const working = snapshots.get("working");
+  const published = snapshots.get("published");
+  if (!working || !published) return c.json({ error: "Snapshot CMS belum tersedia." }, 503);
+  if (body.revisionId && body.revisionId !== working.id) {
+    return c.json({ error: "Draft sudah berubah. Muat ulang CMS sebelum publish." }, 409);
+  }
+  const draft = validateSnapshot(parseSnapshot(working));
+  ensureThemeContrast("theme_settings", draft.theme);
+  if (working.data_json === published.data_json) {
+    return c.json(ok({ releaseId: published.id, publishedAt: published.published_at, changed: false }));
+  }
+  const releaseId = crypto.randomUUID();
+  await c.env.DB.batch([
+    c.env.DB.prepare("UPDATE site_revisions SET status = 'archived', updated_by = ?, updated_at = CURRENT_TIMESTAMP WHERE status = 'published'").bind(c.get("user").id),
+    c.env.DB.prepare(
+      "INSERT INTO site_revisions (id,status,data_json,created_by,updated_by,published_at) VALUES (?, 'published', ?, ?, ?, CURRENT_TIMESTAMP)",
+    ).bind(releaseId, JSON.stringify(draft), c.get("user").id, c.get("user").id),
+  ]);
+  const released = await c.env.DB.prepare("SELECT * FROM site_revisions WHERE id = ?").bind(releaseId).first<SiteSnapshotRow>();
+  return c.json(ok({ releaseId, publishedAt: released?.published_at ?? new Date().toISOString(), changed: true }));
+});
 app.get("/assets/*", async (c) => {
   const key = c.req.path.replace(/^\/assets\//, "");
   if (!/^assets\/[0-9]{4}\/[0-9]{2}\/[a-f0-9-]+-[a-z0-9.-]+$/.test(key)) {
@@ -156,14 +222,25 @@ app.get("/assets/*", async (c) => {
 app.get("/public/site", async (c) => {
   const locale = c.req.query("locale") ?? "id";
   if (locale !== "id") return c.json({ error: "Locale tidak didukung." }, 400);
-  const result = await c.env.DB.prepare(
-    `SELECT * FROM content_entries
-      WHERE status = 'published' AND locale = ? AND is_visible = 1
-      ORDER BY content_type, sort_order, updated_at DESC`,
-  )
-    .bind(locale)
-    .all<ContentRow>();
-  const payload = composePublicSite(result.results);
+  let payload: unknown;
+  try {
+    const snapshot = await c.env.DB.prepare(
+      "SELECT * FROM site_revisions WHERE status = 'published' LIMIT 1",
+    ).first<SiteSnapshotRow>();
+    if (snapshot) payload = parseSnapshot(snapshot);
+  } catch {
+    // Migration fallback: serve legacy published entries until site_revisions exists.
+  }
+  if (!payload) {
+    const result = await c.env.DB.prepare(
+      `SELECT * FROM content_entries
+        WHERE status = 'published' AND locale = ? AND is_visible = 1
+        ORDER BY content_type, sort_order, updated_at DESC`,
+    )
+      .bind(locale)
+      .all<ContentRow>();
+    payload = composePublicSite(result.results);
+  }
   const serialized = JSON.stringify(payload);
   const etag = `"${await hashToken(serialized)}"`;
   if (c.req.header("If-None-Match") === etag) return c.body(null, 304);
@@ -582,7 +659,3 @@ app.delete("/admin/users/:id", requireAuth, requireSuperadmin, async (c) => {
 app.all("*", (c) => c.json({ error: "Route tidak ditemukan." }, 404));
 
 export default app;
-
-
-
-
