@@ -17,6 +17,7 @@ describe("content contracts", () => {
 
   it("rejects unsafe URL protocols", () => { expect(() => siteSettingsSchema.parse({ ...defaultSiteContent.settings, logoUrl: "javascript:alert(1)" })).toThrow(); });
 
+  it("keeps the public catalog at eight clients and nine contact grid slots",()=>{expect(defaultSiteContent.clients).toHaveLength(8);expect(defaultSiteContent.about.gridImages).toHaveLength(9);expect(defaultSiteContent.contact.galleryImages).toHaveLength(9)});
   it("requires alt text whenever a client logo is configured", () => {
     expect(() => clientSchema.parse({
       ...defaultSiteContent.clients[0],

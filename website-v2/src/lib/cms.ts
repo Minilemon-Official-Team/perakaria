@@ -29,19 +29,15 @@ v2Fallback.clients = [
   ["Prodia", "/assets/clients/prodia-reference.png"],
   ["Shell", "/assets/clients/shell-reference.png"],
   ["Enjoy Jakarta", "/assets/clients/enjoy-jakarta-reference.png"],
-  ["Client 09", ""],
-  ["Client 10", ""],
-  ["Client 11", ""],
-  ["Client 12", ""],
 ].map(([name, logoUrl], index) => ({
   id: `v2-client-${index + 1}`,
   name,
   logoUrl,
-  logoAlt: name,
+  logoAlt: logoUrl ? name : "",
   websiteUrl: "",
   order: index + 1,
   isVisible: true,
-  isPlaceholder: index >= 6,
+  isPlaceholder: false,
 }));
 v2Fallback.portfolio = Array.from({ length: 19 }, (_, index) => ({
   id: `v2-portfolio-${index + 1}`,
@@ -61,13 +57,35 @@ v2Fallback.portfolio = Array.from({ length: 19 }, (_, index) => ({
   isVisible: true,
   isPlaceholder: true,
 }));
-v2Fallback.contact.galleryImages = Array.from({ length: 5 }, (_, index) => ({
+v2Fallback.contact.galleryImages = Array.from({ length: 9 }, (_, index) => ({
   imageUrl: `/assets/contact/tile-${index + 1}.svg`,
-  imageAlt: `Visual contact Perakaria ${index + 1}`,
-  title: `Studio visual ${index + 1}`,
+  imageAlt: `Visual contact Perakaria ${String(index + 1).padStart(2, "0")}`,
+  title: `Studio visual ${String(index + 1).padStart(2, "0")}`,
 }));
 
 const isChanged = (current: unknown, baseline: unknown) => JSON.stringify(current) !== JSON.stringify(baseline);
+
+function normalizeClients(incoming: PublicSitePayload["clients"]): PublicSitePayload["clients"] {
+  if (incoming.length === v2Fallback.clients.length) {
+    return incoming.map((client, index) => ({
+      ...v2Fallback.clients[index],
+      ...client,
+      logoUrl: client.logoUrl || v2Fallback.clients[index].logoUrl,
+      logoAlt: client.logoAlt || v2Fallback.clients[index].logoAlt,
+    }));
+  }
+  const byName = new Map(incoming.map((client) => [client.name, client]));
+  return v2Fallback.clients.map((fallback) => ({
+    ...fallback,
+    ...(byName.get(fallback.name) ?? {}),
+    logoUrl: byName.get(fallback.name)?.logoUrl || fallback.logoUrl,
+    logoAlt: byName.get(fallback.name)?.logoAlt || fallback.logoAlt,
+  }));
+}
+
+function normalizeContactGallery(incoming: PublicSitePayload["contact"]["galleryImages"]): PublicSitePayload["contact"]["galleryImages"] {
+  return Array.from({ length: v2Fallback.contact.galleryImages.length }, (_, index) => incoming[index] ?? v2Fallback.contact.galleryImages[index]);
+}
 
 /**
  * The existing production database contains the pre-v2 default payload. Keep
@@ -79,7 +97,7 @@ function mergeV2CmsContent(remote: PublicSitePayload): PublicSitePayload {
   const legacy = defaultSiteContent as Record<string, any>;
   const incoming = remote as Record<string, any>;
   const target = merged as Record<string, any>;
-  for (const key of ["settings", "theme", "sections", "hero", "about", "expertise", "contact"]) {
+  for (const key of ["settings", "theme", "sections", "hero", "about", "expertise"]) {
     const current = incoming[key];
     const baseline = legacy[key];
     if (!current || !baseline) continue;
@@ -91,9 +109,15 @@ function mergeV2CmsContent(remote: PublicSitePayload): PublicSitePayload {
       if (isChanged(current[field], baseline[field])) target[key][field] = structuredClone(current[field]);
     }
   }
-  for (const key of ["skills", "services", "portfolio", "clients"]) {
+  if (incoming.contact) {
+    const contact = structuredClone(incoming.contact);
+    contact.galleryImages = normalizeContactGallery(incoming.contact.galleryImages ?? []);
+    target.contact = contact;
+  }
+  for (const key of ["skills", "services", "portfolio"]) {
     if (isChanged(incoming[key], legacy[key])) target[key] = structuredClone(incoming[key]);
   }
+  if (incoming.clients) target.clients = normalizeClients(incoming.clients);
   return merged;
 }
 

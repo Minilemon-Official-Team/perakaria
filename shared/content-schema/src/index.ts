@@ -248,11 +248,15 @@ export const clientSchema = z.object({
 });
 
 const defaultContactGalleryImages = [
-  { imageUrl: "/media/work-camera-rig.png", imageAlt: "Kamera sinema profesional di studio", title: "Camera rig" },
-  { imageUrl: "/media/work-lighting-stage.png", imageAlt: "Pencahayaan panggung untuk produksi", title: "Lighting stage" },
-  { imageUrl: "/media/work-motion-design.png", imageAlt: "Eksperimen visual untuk motion design", title: "Motion design" },
-  { imageUrl: "/media/about-creative-tech.png", imageAlt: "Kreator mengoperasikan teknologi kreatif", title: "Creative tech" },
-  { imageUrl: "/media/about-interactive-media.png", imageAlt: "Instalasi media interaktif", title: "Interactive media" },
+  { imageUrl: "/assets/contact/tile-1.svg", imageAlt: "Visual contact Perakaria 01", title: "Studio visual 01" },
+  { imageUrl: "/assets/contact/tile-2.svg", imageAlt: "Visual contact Perakaria 02", title: "Studio visual 02" },
+  { imageUrl: "/assets/contact/tile-3.svg", imageAlt: "Visual contact Perakaria 03", title: "Studio visual 03" },
+  { imageUrl: "/assets/contact/tile-4.svg", imageAlt: "Visual contact Perakaria 04", title: "Studio visual 04" },
+  { imageUrl: "/assets/contact/tile-5.svg", imageAlt: "Visual contact Perakaria 05", title: "Studio visual 05" },
+  { imageUrl: "/assets/contact/tile-6.svg", imageAlt: "Visual contact Perakaria 06", title: "Studio visual 06" },
+  { imageUrl: "/assets/contact/tile-7.svg", imageAlt: "Visual contact Perakaria 07", title: "Studio visual 07" },
+  { imageUrl: "/assets/contact/tile-8.svg", imageAlt: "Visual contact Perakaria 08", title: "Studio visual 08" },
+  { imageUrl: "/assets/contact/tile-9.svg", imageAlt: "Visual contact Perakaria 09", title: "Studio visual 09" },
 ] as const;
 
 const contactGalleryImageSchema = z.object({
@@ -265,7 +269,7 @@ export const contactSchema = z.object({
   headline: z.string().min(1).max(120),
   whatsappLabel: z.string().max(40),
   emailLabel: z.string().max(40),
-  galleryImages: z.array(contactGalleryImageSchema).min(1).max(5).default(defaultContactGalleryImages.map((image) => ({ ...image }))),
+  galleryImages: z.array(contactGalleryImageSchema).min(1).max(9).default(defaultContactGalleryImages.map((image) => ({ ...image }))),
   galleryDirection: z.enum(["descending-right", "ascending-right"]).default("descending-right"),
   galleryVerticalAlignment: z.enum(["start", "center", "end"]).default("center"),
   footerNote: z.string().min(1).max(180),
@@ -905,17 +909,19 @@ export const defaultSiteContent: PublicSitePayload = {
       isPlaceholder: true,
     },
   ],  clients: [
-    "JTI",
-    "Danone",
-    "Toyota",
-    "Prodia",
-    "Koperasi Astra",
-    "Wonderful Indonesia",
-  ].map((name, index) => ({
+    ["JTI", "/assets/clients/jti.svg"],
+    ["Danone", "/assets/clients/danone.svg"],
+    ["Koperasi Astra", "/assets/clients/koperasi-astra.svg"],
+    ["Wonderful Indonesia", ""],
+    ["Toyota", "/assets/clients/toyota-reference.png"],
+    ["Prodia", "/assets/clients/prodia-reference.png"],
+    ["Shell", "/assets/clients/shell-reference.png"],
+    ["Enjoy Jakarta", "/assets/clients/enjoy-jakarta-reference.png"],
+  ].map(([name, logoUrl], index) => ({
     id: `client-${index + 1}`,
     name,
-    logoUrl: "",
-    logoAlt: "",
+    logoUrl,
+    logoAlt: logoUrl ? name : "",
     websiteUrl: "",
     order: index + 1,
     isVisible: true,
